@@ -85,9 +85,11 @@ class alert extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ),  
+          ], 
+          
+            
+        ), 
       );
     }
 
