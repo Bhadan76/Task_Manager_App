@@ -1,23 +1,18 @@
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:task_manager_app/data/models/user_model.dart';
-import 'package:task_manager_app/data/services/api_caller.dart';
-import 'package:task_manager_app/data/utils/urls.dart';
-import 'package:task_manager_app/ui/controllers/authController.dart';
+import 'package:get/get.dart';
+import 'package:task_manager_app/ui/controllers/signin_controller.dart';
 import 'package:task_manager_app/ui/screens/forgot_password_verify_email_screen.dart';
 import 'package:task_manager_app/ui/screens/main_navbar_holder_screen.dart';
 import 'package:task_manager_app/ui/screens/signup_screen.dart';
 import 'package:task_manager_app/ui/widgets/center_progress_indegator.dart';
 import 'package:task_manager_app/ui/widgets/screen_background.dart';
-import 'package:task_manager_app/ui/widgets/showSnackBarMessage.dart';
+import 'package:task_manager_app/ui/widgets/ShowSnackbarMessage.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
   static const String name = '/login';
-
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -26,8 +21,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final GlobalKey<FormState> _formkey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _loginInProgress = false;
   bool _showPassword = false;
+  final SigninController _signInController = Get.find<SigninController>();
 
   @override
   Widget build(BuildContext context) {
@@ -52,9 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _emailController,
                     textInputAction: TextInputAction.next,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      hintText: 'Email',
-                    ),
+                    decoration: const InputDecoration(hintText: 'Email'),
                     validator: (String? value) {
                       String inputText = value ?? '';
                       if (EmailValidator.validate(inputText) == false) {
@@ -74,9 +67,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           _showPassword = !_showPassword;
                           setState(() {});
                         },
-                        icon: Icon(_showPassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined),
+                        icon: Icon(
+                          _showPassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
                       ),
                     ),
                     validator: (String? value) {
@@ -90,46 +85,45 @@ class _LoginScreenState extends State<LoginScreen> {
                   Center(
                     child: Column(
                       children: [
-                        Visibility(
-                          visible: _loginInProgress == false,
-                          replacement: const Center_progress_indegator(),
-                          child: FilledButton(
-                            onPressed: _onTapLoginButton,
-                            child: const Icon(Icons.arrow_circle_right),
-                          ),
+                        GetBuilder<SigninController>(
+                          builder: (controller) {
+                            return Visibility(
+                              visible: controller.inProgress == false,
+                              replacement: const Center_progress_indegator(),
+                              child: FilledButton(
+                                onPressed: _onTapLoginButton,
+                                child: const Icon(Icons.arrow_circle_right),
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 40),
                         TextButton(
                           onPressed: _onTapForgotPasswordButton,
                           child: const Text(
                             'Forgot password?',
-                            style: TextStyle(
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(color: Colors.grey),
                           ),
                         ),
                         RichText(
                           text: TextSpan(
-                            style: const TextStyle(
-                              color: Colors.black,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
                             text: "Don't have an account? ",
                             children: [
                               TextSpan(
                                 text: 'Sign up',
-                                style: const TextStyle(
-                                  color: Colors.green,
-                                ),
+                                style: const TextStyle(color: Colors.green),
                                 recognizer: TapGestureRecognizer()
                                   ..onTap = _onTapSignupButton,
-                              )
+                              ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
@@ -140,7 +134,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _onTapForgotPasswordButton() {
-    Navigator.pushNamed(context, ForgotPasswordVerifyEmailScreen.name);
     Get.toNamed(ForgotPasswordVerifyEmailScreen.name);
   }
 
@@ -151,37 +144,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    _loginInProgress = true;
-    setState(() {});
-    Map<String, dynamic> requestBody = {
-      "email": _emailController.text.trim(),
-      "password": _passwordController.text
-    };
-    ApiResponse response = await ApiCaller.postRequest(
-      url: Urls.loginUrl,
-      body: requestBody,
+    bool isSuccess = await _signInController.login(
+      _emailController.text.trim(),
+      _passwordController.text,
     );
-    _loginInProgress = false;
-    if (mounted) {
-      setState(() {});
-    }
-
-    if (response.isSuccess && response.responseData['status'] == 'success') {
-      UserModel model = UserModel.formJson(response.responseData['data']);
-      String accessToken = response.responseData['token'];
-      await Authcontroller.saveUserData(model, accessToken);
-      if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          MainNavbarHolderScreen.name,
-          (predicate) => false,
-        );
-        Get.offAllNamed(MainNavbarHolderScreen.name, predicate: (route) => false);
-      }
+    if (isSuccess) {
+      Get.offAllNamed(MainNavbarHolderScreen.name);
     } else {
-      if (mounted) {
-        Showsnackbarmessage(context, response.errorMassage ?? 'Login failed');
-      }
+      ShowSnackbarMessage( 'Task Manager App', _signInController.errorMessage!);
     }
   }
 

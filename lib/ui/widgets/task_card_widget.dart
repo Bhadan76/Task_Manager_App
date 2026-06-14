@@ -3,7 +3,7 @@ import 'package:task_manager_app/data/models/task_model.dart';
 import 'package:task_manager_app/data/services/api_caller.dart';
 import 'package:task_manager_app/data/utils/urls.dart';
 import 'package:task_manager_app/ui/widgets/center_progress_indegator.dart';
-import 'package:task_manager_app/ui/widgets/showSnackBarMessage.dart';
+import 'package:task_manager_app/ui/widgets/ShowSnackbarMessage.dart';
 class task_card_widget extends StatefulWidget {
   const task_card_widget({
     super.key, required this.text, required this.taskModel, required this.refreshParent,
@@ -25,19 +25,19 @@ class _task_card_widgetState extends State<task_card_widget> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
       ),
-      tileColor: Colors.white,
+      tileColor: Theme.of(context).cardColor,
       title: Text(widget.taskModel.tittle),
       subtitle: Column(
         spacing: 8,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(widget.taskModel.description),
-          Text('${widget.taskModel.createdAt}',style: TextStyle(color: Colors.black,fontWeight: FontWeight.w600),),
+          Text('${widget.taskModel.createdAt}',style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color,fontWeight: FontWeight.w600),),
           Row(
             children: [
               Chip(
                 label: Text(widget.taskModel.status),
-                labelStyle: TextStyle(color: Colors.black,fontWeight: FontWeight.w600),
+                labelStyle: const TextStyle(color: Colors.black,fontWeight: FontWeight.w600),
                 backgroundColor: Colors.greenAccent.shade100,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -142,7 +142,7 @@ class _task_card_widgetState extends State<task_card_widget> {
      widget.refreshParent();
 
     }else{
-      Showsnackbarmessage(context, response.errorMassage!);
+      ShowSnackbarMessage('Task Manager App', response.errorMassage!);
     }
   }
   Future<void> _deleteTask () async{
@@ -155,7 +155,7 @@ class _task_card_widgetState extends State<task_card_widget> {
      widget.refreshParent();
 
     }else{
-      Showsnackbarmessage(context, response.errorMassage!);
+      ShowSnackbarMessage('Task Manager App', response.errorMassage!);
     }
   }
 }

@@ -10,6 +10,8 @@ class Urls{
   static String allTaskListUrl(String newStatus) => '$_baseUrl/listTaskByStatus/$newStatus';
   static String updateTaskStatusUrl(String id,String newStatus) => '$_baseUrl/updateTaskStatus/$id/$newStatus';
   static String deleteTaskUrl(String id) => '$_baseUrl/deleteTask/$id';
-  static String forgotPasswordEmailVerifyUrl(String emailId) => '$_baseUrl/RecoverVerifyEmail/$emailId';
-  static String forgotPasswordOtpVerifyUrl(String emailId,String otp) => '$_baseUrl/RecoverVerifyOTP/$emailId/$otp';
+  static String forgotPasswordEmailVerifyUrl(String emailId) =>
+      '$_baseUrl/RecoverVerifyEmail/${Uri.encodeComponent(emailId)}';
+  static String forgotPasswordOtpVerifyUrl(String emailId, String otp) =>
+      '$_baseUrl/RecoverVerifyOTP/${Uri.encodeComponent(emailId)}/${Uri.encodeComponent(otp)}';
 }

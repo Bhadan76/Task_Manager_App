@@ -2,6 +2,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_navigation/src/extension_navigation.dart';
+import 'package:task_manager_app/ui/controllers/app_bar_theme_controller.dart';
 import 'package:task_manager_app/ui/controllers/authController.dart';
 import 'package:task_manager_app/ui/screens/login_screen.dart';
 import 'package:task_manager_app/ui/screens/update_profile_screen.dart';
@@ -18,7 +22,8 @@ class appBar_widget extends StatefulWidget implements PreferredSizeWidget {
   State<appBar_widget> createState() => _appBar_widgetState();
 }
 
-class _appBar_widgetState extends State<appBar_widget> {
+class _appBar_widgetState extends State<appBar_widget>{
+  final themeController = Get.find<AppBarThemeController>();
   @override
   Widget build(BuildContext context) {
     return AppBar(
@@ -28,10 +33,7 @@ class _appBar_widgetState extends State<appBar_widget> {
           if (widget.formUpdateProfile ?? false) {
             return;
           }
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const UpdateProfileScreen()),
-          ).then((value) {
+           Get.toNamed(UpdateProfileScreen.name)?.then((value) {
             setState(() {});
           });
         },
@@ -44,7 +46,13 @@ class _appBar_widgetState extends State<appBar_widget> {
         ),
       ),
       actions: [
+        IconButton(onPressed: themeController.toggleTheme,
+            icon: Obx(
+                ()=> Icon(themeController.isDark.value ? Icons.light_mode : Icons.dark_mode_outlined),
+            ),
+        ),
         IconButton(onPressed: logOut, icon: const Icon(Icons.logout)),
+
       ],
     );
   }

@@ -1,15 +1,13 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:task_manager_app/data/models/user_model.dart';
-import 'package:task_manager_app/data/services/api_caller.dart';
-import 'package:task_manager_app/data/utils/urls.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
+import 'package:get/get_state_manager/src/simple/get_state.dart';
 import 'package:task_manager_app/ui/controllers/authController.dart';
+import 'package:task_manager_app/ui/controllers/update_profile_controller.dart';
 import 'package:task_manager_app/ui/widgets/app_bar_widget.dart';
 import 'package:task_manager_app/ui/widgets/center_progress_indegator.dart';
 import 'package:task_manager_app/ui/widgets/photo_picker_filed.dart';
-import 'package:task_manager_app/ui/widgets/showSnackBarMessage.dart';
+import 'package:task_manager_app/ui/widgets/ShowSnackbarMessage.dart';
 
 class UpdateProfileScreen extends StatefulWidget {
   const UpdateProfileScreen({super.key});
@@ -27,11 +25,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  final ImagePicker _imagePicker =ImagePicker();
-  XFile? _selectedImage;
-
-  bool _updateProfileInProgress = false;
-
+  final UpdateProfileController _updateProfileController = Get.find<UpdateProfileController>();
   @override
   void initState() {
     super.initState();
@@ -59,7 +53,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 SizedBox(height: 24),
-                photo_picker_filed(onTap: _pickImage, selectedPhoto: _selectedImage,),
+                photo_picker_filed(onTap: _updateProfileController.pickImage, selectedPhoto: _updateProfileController.selectedImage,),
                 SizedBox(height: 10),
                 TextFormField(
                   enabled: false,
@@ -90,6 +84,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                 ),
                 SizedBox(height: 10),
                 TextFormField(
+                  keyboardType: TextInputType.phone,
                   controller: _mobileController,
                   decoration: InputDecoration(hintText: 'Mobile'),
                   validator: (String? value) {
@@ -112,13 +107,17 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                   ),
                 ),
                 SizedBox(height: 82),
-                Visibility(
-                  visible: _updateProfileInProgress== false,
-                  replacement: Center_progress_indegator(),
-                  child: FilledButton(
-                    onPressed: _onTapUpdateButton,
-                    child: const Icon(Icons.arrow_circle_right),
-                  ),
+                GetBuilder<UpdateProfileController>(
+                  builder: (controller) {
+                    return Visibility(
+                      visible: _updateProfileController.updateProfileInProgress== false,
+                      replacement: Center_progress_indegator(),
+                      child: FilledButton(
+                        onPressed: _onTapUpdateButton,
+                        child: const Icon(Icons.arrow_circle_right),
+                      ),
+                    );
+                  }
                 ),
               ],
             ),
@@ -127,57 +126,26 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
       ),
     );
   }
-  Future<void> _pickImage() async {
-    XFile? pickImage=await _imagePicker.pickImage(source: ImageSource.gallery);
-    if(pickImage!= null){
-         _selectedImage= pickImage;
-         setState(() {});
-    }
-  }
+
   void _onTapUpdateButton(){
     if(_formKey.currentState!.validate()){
       _updateProfile();
     }
   }
   Future <void> _updateProfile() async {
-    _updateProfileInProgress = true;
-    setState(() {});
-    Map<String, dynamic> requestBody = {
-      'email': _emailController.text.trim(),
-      'firstName': _firstNameController.text.trim(),
-      'lastName': _lastNameController.text.trim(),
-      'mobile': _mobileController.text.trim(),
-    };
-    if(_selectedImage != null){
-      List<int> imageBytes = await _selectedImage!.readAsBytes();
-      requestBody['photo'] = base64Encode(imageBytes); // API expects 'photo'
-    }
-    if(_passwordController.text.isNotEmpty){
-      requestBody['password'] = _passwordController.text;
-    }
-    ApiResponse response = await ApiCaller.postRequest(url: Urls.updateProfileUrl,body: requestBody);
-    _updateProfileInProgress = false;
-    setState(() {});
-    if(response.isSuccess){
-      UserModel userModel = UserModel(
-        email: _emailController.text.trim(),
-        firstName: _firstNameController.text.trim(),
-        lastName: _lastNameController.text.trim(),
-        mobile: _mobileController.text.trim(),
-        photo: requestBody['photo'] ?? Authcontroller.usermodel?.photo,
-      );
-      await Authcontroller.saveUserData(userModel, Authcontroller.accessToken!);
+    bool isSuccess = await _updateProfileController.addNewTasks(
+      _emailController.text.trim(),
+      _firstNameController.text.trim(),
+      _lastNameController.text.trim(),
+      _mobileController.text.trim()
+    );
+
+    if(isSuccess){
       _passwordController.clear();
+      ShowSnackbarMessage( 'Task Manager App', 'Profile updated successfully!');
 
-       setState(() {
-         Showsnackbarmessage(context, 'Profile updated successfully!');
-
-       });
     }else{
-      setState(() {
-        Showsnackbarmessage(context, response.errorMassage ?? 'Update failed!');
-
-      });
+        ShowSnackbarMessage( 'Task Manager App', _updateProfileController.errorMessage ?? 'Update failed!');
     }
   }
 

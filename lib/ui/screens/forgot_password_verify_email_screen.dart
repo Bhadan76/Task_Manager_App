@@ -5,14 +5,15 @@ import 'package:get/get.dart';
 import 'package:task_manager_app/data/services/api_caller.dart';
 import 'package:task_manager_app/data/utils/urls.dart';
 import 'package:task_manager_app/ui/controllers/authController.dart';
+import 'package:task_manager_app/ui/controllers/forgot_password_email_controller.dart';
 import 'package:task_manager_app/ui/screens/forgot_password_verify_OTP_screen.dart';
 import 'package:task_manager_app/ui/widgets/center_progress_indegator.dart';
 import 'package:task_manager_app/ui/widgets/screen_background.dart';
-import 'package:task_manager_app/ui/widgets/showSnackBarMessage.dart';
+import 'package:task_manager_app/ui/widgets/ShowSnackbarMessage.dart';
 
 class ForgotPasswordVerifyEmailScreen extends StatefulWidget {
   const ForgotPasswordVerifyEmailScreen({super.key});
-  static const String name = '/forgot email verify';
+  static const String name = '/forgot-email-verify';
 
   @override
   State<ForgotPasswordVerifyEmailScreen> createState() =>
@@ -23,7 +24,7 @@ class _ForgotPasswordVerifyEmailScreenState
     extends State<ForgotPasswordVerifyEmailScreen> {
   final GlobalKey<FormState> _formkey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
-  bool _forgotEmailInProcess = false;
+  final ForgotPasswordEmailController _forgotPasswordEmailController = Get.find<ForgotPasswordEmailController>();
 
   @override
   Widget build(BuildContext context) {
@@ -66,19 +67,22 @@ class _ForgotPasswordVerifyEmailScreenState
                   Center(
                     child: Column(
                       children: [
-                        Visibility(
-                          visible: _forgotEmailInProcess == false,
-                          replacement: const Center_progress_indegator(),
-                          child: FilledButton(
-                            onPressed: _onTapForgotPwVerifyEmail,
-                            child: const Icon(Icons.arrow_circle_right),
-                          ),
+                        GetBuilder<ForgotPasswordEmailController>(
+                          builder: (controller) {
+                            return Visibility(
+                              visible: _forgotPasswordEmailController.forgotPwEmailInProgress == false,
+                              replacement: const Center_progress_indegator(),
+                              child: FilledButton(
+                                onPressed: _onTapForgotPwVerifyEmail,
+                                child: const Icon(Icons.arrow_circle_right),
+                              ),
+                            );
+                          }
                         ),
                         const SizedBox(height: 40),
                         RichText(
                           text: TextSpan(
-                            style: const TextStyle(
-                              color: Colors.black,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
                             text: "Have account? ",
@@ -111,39 +115,21 @@ class _ForgotPasswordVerifyEmailScreenState
   }
 
   Future<void> _forgotPwVerifyEmail() async {
-    final String email = _emailController.text.trim();
-    // Check if this email has ever logged in on this device
-    bool hasLoggedInBefore = await Authcontroller.isEmailInHistory(email);
+    final String email = _emailController.text.trim().toLowerCase();
+    final bool isSuccess = await _forgotPasswordEmailController
+        .forgotPwVerifyEmail(email);
+    if (!mounted) return;
 
-    if (!hasLoggedInBefore) {
-      if (mounted) {
-        Showsnackbarmessage(
-          context,
-          'You can only recover the password for an email that has previously logged into this app.',
-        );
-      }
-      return;
-    }
-
-    _forgotEmailInProcess = true;
-    setState(() {});
-
-    ApiResponse response = await ApiCaller.getRequest(
-      url: Urls.forgotPasswordEmailVerifyUrl(email),
-    );
-
-    _forgotEmailInProcess = false;
-    setState(() {});
-
-    if (response.isSuccess) {
-      if (mounted) {
-        Showsnackbarmessage(context, 'OTP sent to $email');
-        Get.toNamed(ForgotPasswordVerifyOtpScreen.name, arguments: email);
-      }
+    if (isSuccess) {
+      ShowSnackbarMessage(
+        'Task Manager App',
+        'OTP sent to $email. Check Inbox, Spam, and Promotions.',
+      );
+      Get.toNamed(ForgotPasswordVerifyOtpScreen.name, arguments: email);
+      _emailController.clear();
     } else {
-      if (mounted) {
-        Showsnackbarmessage(context, response.errorMassage!);
-      }
+      ShowSnackbarMessage(
+          'Task Manager App', _forgotPasswordEmailController.errorMessage!);
     }
   }
 

@@ -1,17 +1,17 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:task_manager_app/data/services/api_caller.dart';
-import 'package:task_manager_app/data/utils/urls.dart';
+import 'package:task_manager_app/ui/controllers/forgot_password_email_controller.dart';
+import 'package:task_manager_app/ui/controllers/new_password_controller.dart';
 import 'package:task_manager_app/ui/screens/login_screen.dart';
 import 'package:task_manager_app/ui/widgets/center_progress_indegator.dart';
 import 'package:task_manager_app/ui/widgets/screen_background.dart';
-import 'package:task_manager_app/ui/widgets/showSnackBarMessage.dart';
+import 'package:task_manager_app/ui/widgets/ShowSnackbarMessage.dart';
 
 class NewPasswordSetScreen extends StatefulWidget {
   const NewPasswordSetScreen({super.key});
 
-  static const String name = '/New password set screen';
+  static const String name = '/new-password-set';
 
   @override
   State<NewPasswordSetScreen> createState() => _NewPasswordSetScreenState();
@@ -22,17 +22,28 @@ class _NewPasswordSetScreenState extends State<NewPasswordSetScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _conformPasswordController =
       TextEditingController();
-  bool _resetPasswordInProgress = false;
+  final NewPasswordController _newPasswordController =
+      Get.find<NewPasswordController>();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
+  Map<String, dynamic> get _args {
+    final args = Get.arguments;
+    if (args is Map<String, dynamic>) {
+      return args;
+    }
+    return {};
+  }
+
+  String get _email =>
+      _args['email']?.toString() ??
+      Get.find<ForgotPasswordEmailController>().recoveryEmail ??
+      '';
+
+  String get _otp => _args['otp']?.toString() ?? '';
+
   @override
   Widget build(BuildContext context) {
-    final Map<String, dynamic>? args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final String email = args?['email'] ?? '';
-    final String otp = args?['otp'] ?? '';
-
     return Scaffold(
       body: ScreenBackground(
         child: SingleChildScrollView(
@@ -118,28 +129,23 @@ class _NewPasswordSetScreenState extends State<NewPasswordSetScreen> {
                   Center(
                     child: Column(
                       children: [
-                        Visibility(
-                          visible: _resetPasswordInProgress == false,
-                          replacement: const Center_progress_indegator(),
-                          child: FilledButton(
-                            onPressed: () {
-                              if (email.isEmpty || otp.isEmpty) {
-                                Showsnackbarmessage(
-                                  context,
-                                  'Invalid request. Please try again from the beginning.',
-                                );
-                                return;
-                              }
-                              _onTapResetPasswordButton(email, otp);
-                            },
-                            child: const Text('Confirm'),
-                          ),
+                        GetBuilder<NewPasswordController>(
+                          builder: (controller) {
+                            return Visibility(
+                              visible:
+                                  controller.resetPasswordInProgress == false,
+                              replacement: const Center_progress_indegator(),
+                              child: FilledButton(
+                                onPressed: _onTapResetPasswordButton,
+                                child: const Text('Confirm'),
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 40),
                         RichText(
                           text: TextSpan(
-                            style: const TextStyle(
-                              color: Colors.black,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
                             text: "Already have an account? ",
@@ -165,43 +171,40 @@ class _NewPasswordSetScreenState extends State<NewPasswordSetScreen> {
     );
   }
 
-  void _onTapResetPasswordButton(String email, String otp) {
+  void _onTapResetPasswordButton() {
+    if (_email.isEmpty || _otp.isEmpty) {
+      ShowSnackbarMessage(
+        'Task Manager App',
+        'Invalid request. Please try again from the beginning.',
+      );
+      return;
+    }
+
     if (_formkey.currentState!.validate()) {
-      _resetPassword(email, otp);
+      _resetPassword();
     }
   }
 
-  Future<void> _resetPassword(String email, String otp) async {
-    _resetPasswordInProgress = true;
-    setState(() {});
-
-    Map<String, dynamic> requestBody = {
-      "email": email,
-      "OTP": otp,
-      "password": _passwordController.text,
-    };
-
-    ApiResponse response = await ApiCaller.postRequest(
-      url: Urls.RecoverResetPassUrl,
-      body: requestBody,
+  Future<void> _resetPassword() async {
+    final bool isSuccess = await _newPasswordController.resetPassword(
+      email: _email,
+      otp: _otp,
+      password: _passwordController.text,
     );
 
-    _resetPasswordInProgress = false;
-    setState(() {});
+    if (!mounted) return;
 
-    if (response.isSuccess && response.responseData['status'] == 'success') {
-      if (mounted) {
-        Showsnackbarmessage(context, 'Password reset successful! Please login.');
-        Get.offAllNamed(LoginScreen.name, predicate: (route) => false);
-      }
+    if (isSuccess) {
+      ShowSnackbarMessage(
+        'Task Manager App',
+        'Password reset successful! Please login.',
+      );
+      Get.offAllNamed(LoginScreen.name, predicate: (route) => false);
     } else {
-      if (mounted) {
-        String errorMsg = response.errorMassage ?? 'Failed to reset password';
-        if (response.responseData != null && response.responseData['data'] != null) {
-          errorMsg = response.responseData['data'];
-        }
-        Showsnackbarmessage(context, errorMsg);
-      }
+      ShowSnackbarMessage(
+        'Task Manager App',
+        _newPasswordController.errorMessage ?? 'Failed to reset password',
+      );
     }
   }
 

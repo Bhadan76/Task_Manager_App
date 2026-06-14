@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:task_manager_app/data/models/task_model.dart';
-import 'package:task_manager_app/data/services/api_caller.dart';
-import 'package:task_manager_app/data/utils/urls.dart';
-import 'package:task_manager_app/ui/screens/progress_task_screen.dart';
-import 'package:task_manager_app/ui/widgets/showSnackBarMessage.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
+import 'package:get/get_state_manager/src/simple/get_state.dart';
+import 'package:task_manager_app/ui/controllers/progress_task_controller.dart';
+import 'package:task_manager_app/ui/widgets/ShowSnackbarMessage.dart';
 import 'package:task_manager_app/ui/widgets/task_card_widget.dart';
-import 'package:task_manager_app/ui/widgets/task_count_status_bar.dart';
 class ProgressTaskScreen extends StatefulWidget {
   const ProgressTaskScreen({super.key});
 
@@ -15,8 +14,7 @@ class ProgressTaskScreen extends StatefulWidget {
 
 
 class _ProgressTaskScreenState extends State<ProgressTaskScreen> {
-  bool getAllProgressInProgress = false;
-  List<TaskModel> _progressList = [];
+  final ProgressTaskController _progressTaskController = Get.find<ProgressTaskController>();
   @override
   void initState() {
     super.initState();
@@ -24,49 +22,42 @@ class _ProgressTaskScreenState extends State<ProgressTaskScreen> {
   }
 
   Future<void> _getAllProgressTasks() async {
-    getAllProgressInProgress = true;
-    setState(() {});
-    ApiResponse response = await ApiCaller.getRequest(
-      url: Urls.allTaskListUrl('Progress'),
-    );
-    if (response.isSuccess) {
-      List<TaskModel> list = [];
-      for (Map<String, dynamic> JsonData in response.responseData['data']) {
-        list.add(TaskModel.fromJson(JsonData));
-      }
-      _progressList = list;
-    } else {
-      Showsnackbarmessage(context, response.errorMassage!);
+    bool isSuccess = await _progressTaskController.getAllProgressTasks();
+    if (!isSuccess) {
+      ShowSnackbarMessage('Task Manager App', _progressTaskController.errorMessage!);
     }
-    getAllProgressInProgress = false;
-    setState(() {});
+
   }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Visibility(
-          visible: getAllProgressInProgress == false,
-          replacement: const Center(
-            child: CircularProgressIndicator(),
-          ),
-          child: ListView.separated(
-              itemBuilder: (context,index){
-            return task_card_widget(
-              text: 'Progress',
-              taskModel: _progressList[index],
-              refreshParent: () {
-                _getAllProgressTasks();
+        child: GetBuilder<ProgressTaskController>(
+          builder: (controller) {
+            return Visibility(
+              visible:controller.getAllProgressInProgress  == false,
+              replacement: const Center(
+                child: CircularProgressIndicator(),
+              ),
+              child: ListView.separated(
+                  itemBuilder: (context,index){
+                return task_card_widget(
+                  text: 'Progress',
+                  taskModel: _progressTaskController.progressList[index],
+                  refreshParent: () {
+                    _getAllProgressTasks();
+                  },
+                );
               },
-            );
-          },
-              separatorBuilder: (context,index){
-                return SizedBox(height: 8,);
+                  separatorBuilder: (context,index){
+                    return SizedBox(height: 8,);
 
-              },
-              itemCount: _progressList.length,
-          ),
+                  },
+                  itemCount: _progressTaskController.progressList.length,
+              ),
+            );
+          }
         ),
       ),
     );

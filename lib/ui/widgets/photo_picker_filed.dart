@@ -16,7 +16,7 @@ class photo_picker_filed extends StatelessWidget {
         width: double.maxFinite,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
         ),
         child: Row(
           spacing: 8,

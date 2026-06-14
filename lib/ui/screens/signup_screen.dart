@@ -1,12 +1,10 @@
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:task_manager_app/data/services/api_caller.dart';
-import 'package:task_manager_app/data/utils/urls.dart';
+import 'package:get/get.dart';
+import 'package:task_manager_app/ui/controllers/signup_controller.dart';
 import 'package:task_manager_app/ui/widgets/screen_background.dart';
-import 'package:task_manager_app/ui/widgets/showSnackBarMessage.dart';
+import 'package:task_manager_app/ui/widgets/ShowSnackbarMessage.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -24,8 +22,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _mobileController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _signUpInProgress = false;
   bool _obscurePass = true;
+  final SignupController _signupController = Get.find<SignupController>();
 
   @override
   Widget build(BuildContext context) {
@@ -127,25 +125,28 @@ class _SignupScreenState extends State<SignupScreen> {
                   Center(
                     child: Column(
                       children: [
-                        Visibility(
-                          visible: _signUpInProgress == false,
-                          replacement: const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: FilledButton(
-                              onPressed: _onTapSubmitButton,
-                              child: const Icon(Icons.arrow_circle_right),
-                            ),
-                          ),
+                        GetBuilder<SignupController>(
+                          builder: (controller) {
+                            return Visibility(
+                              visible: _signupController.inProgress == false,
+                              replacement: const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: FilledButton(
+                                  onPressed: _onTapSubmitButton,
+                                  child: const Icon(Icons.arrow_circle_right),
+                                ),
+                              ),
+                            );
+                          }
                         ),
                         SizedBox(height: 40),
 
                         RichText(
                           text: TextSpan(
-                            style: TextStyle(
-                              color: Colors.black,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
                             text: "Already have an account?",
@@ -183,27 +184,20 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _signUp() async {
-    _signUpInProgress = true;
-    setState(() {});
-    Map<String, dynamic> requestBody = {
-      "email": _emailController.text.trim(),
-      "firstName": _firstNameController.text.trim(),
-      "lastName": _lastNameController.text.trim(),
-      "mobile": _mobileController.text.trim(),
-      "password": _passwordController.text,
-    };
+     bool isSuccess = await _signupController.signUp(
+       _emailController.text.trim(),
+       _firstNameController.text.trim(),
+       _lastNameController.text.trim(),
+       _mobileController.text.trim(),
+       _passwordController.text,
 
-    final ApiResponse response = await ApiCaller.postRequest(
-      url: Urls.registrationUrl,
-      body: requestBody,
-    );
-    _signUpInProgress = false;
-    setState(() {});
-    if (response.isSuccess) {
+     );
+
+    if (isSuccess) {
       _clearTextFeild();
-      Showsnackbarmessage(context, 'Registration success! please login');
+      ShowSnackbarMessage( 'Task Manager App', 'Registration success! please login');
     } else {
-      Showsnackbarmessage(context, response.errorMassage!);
+      ShowSnackbarMessage( 'Task Manager App', _signupController.errorMessage!);
     }
   }
 

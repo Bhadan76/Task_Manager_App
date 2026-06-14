@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:task_manager_app/data/services/api_caller.dart';
-import 'package:task_manager_app/data/utils/urls.dart';
+import 'package:get/get_state_manager/src/simple/get_state.dart';
+import 'package:task_manager_app/ui/controllers/add_new_task_controller.dart';
 import 'package:task_manager_app/ui/widgets/app_bar_widget.dart';
-import 'package:task_manager_app/ui/widgets/showSnackBarMessage.dart';
+import 'package:task_manager_app/ui/widgets/ShowSnackbarMessage.dart';
 class AddNewTaskScreen extends StatefulWidget {
   const AddNewTaskScreen({super.key});
-  static const String name= 'add new task screen';
+  static const String name = '/add-new-task';
 
   @override
   State<AddNewTaskScreen> createState() => _AddNewTaskScreenState();
@@ -17,7 +18,7 @@ class _AddNewTaskScreenState extends State<AddNewTaskScreen> {
   final TextEditingController _tittleController=TextEditingController();
   final TextEditingController _descriptionController=TextEditingController();
   final GlobalKey<FormState> _formKey=GlobalKey<FormState>();
-   bool addNewTaskInProgress = false;
+  final AddNewTaskController _addNewTaskController = Get.find<AddNewTaskController>();
 
   @override
   Widget build(BuildContext context) {
@@ -62,11 +63,15 @@ class _AddNewTaskScreenState extends State<AddNewTaskScreen> {
                 },
               ),
               SizedBox(height: 32,),
-              Visibility(
-                visible: addNewTaskInProgress == false,
-                  replacement: Center(child: CircularProgressIndicator()),
-                  child: FilledButton(
-                  onPressed: _onTapAddNewText, child: Text('Add'))),
+              GetBuilder<AddNewTaskController>(
+                builder: (controller) {
+                  return Visibility(
+                    visible: controller.newTaskInProgress == false,
+                      replacement: Center(child: CircularProgressIndicator()),
+                      child: FilledButton(
+                      onPressed: _onTapAddNewText, child: Text('Add')));
+                }
+              ),
             ],
           ),
         ),
@@ -80,24 +85,17 @@ class _AddNewTaskScreenState extends State<AddNewTaskScreen> {
     }
   }
   Future<void> addNewTask() async {
-    addNewTaskInProgress = true;
-    setState(() {});
-    Map<String, dynamic> requestBody ={
-      "title":_tittleController.text.trim(),
-      "description":_descriptionController.text.trim(),
-      "status":"New"
-    };
-    ApiResponse response= await ApiCaller.postRequest(url: Urls.createTaskUrl,body: requestBody);
-    addNewTaskInProgress = false;
-    setState(() {});
-    if(response.isSuccess){
-     addTaskClear();
-     if (mounted) {
-       Showsnackbarmessage(context, 'New task added');
+    bool isSuccess = await _addNewTaskController.addNewTasks(
+      _tittleController.text.trim(),
+      _descriptionController.text.trim(),
+    );
+    if(isSuccess){
+       addTaskClear();
+       ShowSnackbarMessage( 'Task Manager App', 'New task added');
        Get.back(result: true);
-     }
+
     }else{
-      Showsnackbarmessage(context, response.errorMassage!);
+      ShowSnackbarMessage( 'Task Manager App', _addNewTaskController.errorMessage!);
     }
   }
   void addTaskClear(){
