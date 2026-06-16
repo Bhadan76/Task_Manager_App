@@ -61,7 +61,7 @@ class _NewTaskScreenState extends State<NewTaskScreen> {
           children: [
             const SizedBox(height: 16),
             SizedBox(
-              height: Get.height * 0.1,
+              height: 100,
               child: GetBuilder<TaskStatusController>(
                 builder: (controller) {
                   return Visibility(
